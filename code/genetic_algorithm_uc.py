@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from math import ceil
+import copy
 import random
 
 def genetic_algorithm(el_p, to_p, dim, epochs, function):
@@ -38,7 +39,7 @@ def evolve(mating_pool, elites):
 
 def crossover(parent_a, parent_b):
 	if random.uniform(0.00, 1.00) >= CROSS_RATE:
-		return parent_a, parent_b
+		return copy.deepcopy([parent_a, parent_b])
 	child_a, child_b = [], []
 	pivot = random.randint(1, len(parent_a)-1)
 	for i in range(0, len(parent_a)):
