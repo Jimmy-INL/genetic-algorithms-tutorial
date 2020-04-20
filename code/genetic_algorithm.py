@@ -255,7 +255,7 @@ def initialize_population(size, dim, s_min, s_max):
 if __name__ == '__main__':
 	# bounds for the search space
 	SEARCH_MIN, SEARCH_MAX = -5.00, 5.00
-	DIMENSIONS = 2000 # dimensionality of the problem
+	DIMENSIONS = 2 # dimensionality of the problem
 	POP_SIZE = 200 # how big is the population
 	ELITE_PROPORTION = 0.01 # proportion of elites
 	TOURN_PROPORTION = 0.02 # proportion of tournament

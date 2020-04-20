@@ -117,7 +117,7 @@ def initialize_population(size, dim, s_min, s_max):
 
 if __name__ == '__main__':
 	SEARCH_MIN, SEARCH_MAX = -5.00, 5.00
-	DIMENSIONS = 2000
+	DIMENSIONS = 2
 	POP_SIZE = 200
 	ELITE_PROPORTION = 0.01
 	TOURN_PROPORTION = 0.02
