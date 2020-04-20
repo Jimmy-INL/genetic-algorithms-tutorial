@@ -1,63 +1,90 @@
 #!/usr/bin/env python3
 
 from math import ceil
-import copy
 import random
 
-def genetic_algorithm(el_p, to_p, dim, epochs, function):
-	population = initialize_population(POP_SIZE, dim, SEARCH_MIN, SEARCH_MAX)
+class Chromosome:
+	def __init__(self, genes, fit=None):
+		self.genes = genes
+		self.fit = fitness(self.genes) \
+			if fit is None else fit
+
+	def set_genes(self, genes):
+		self.genes = genes
+		self.fit = fitness(self.genes)
+	
+	def get_genes(self):
+		return self.genes
+	
+	def get_fit(self):
+		return self.fit
+
+	def __lt__(self, other):
+		return self.fit < other.fit
+	
+	def __getitem__(self, key):
+		return self.genes[key]
+
+def genetic_algorithm(el_p, to_p, dim, epochs, pop_size, s_min, s_max, cr, mr):
+	population = initialize_population(pop_size, dim, s_min, s_max)
 	for e in range(1, epochs+1):
-		population = sorted(population, key=function)
+		population.sort()
 		mating_pool = []
 		elites = elite_selection(population, el_p)
 		del population[:len(elites)]
 		t_winner = tournament_selection(population, to_p)
 		mating_pool.extend(elites)
 		mating_pool.append(t_winner)
-		population = evolve(mating_pool, elites)
+		population = evolve(mating_pool, elites, pop_size, s_min, s_max, cr, mr)
 		mating_pool.clear()
-	population = sorted(population, key=function)
-	best_fitness = function(population[0])
+	population.sort()
+	best_fitness = fitness(population[0])
 	print(f'Best minimum found was {best_fitness:.2f}.')
 
-def evolve(mating_pool, elites):
+def evolve(mating_pool, elites, pop_size, s_min, s_max, cr, mr):
 	new_population = []
 	new_population.extend(elites)
-	while len(new_population) < POP_SIZE:
+	while len(new_population) < pop_size:
 		p_a_idx = random.randrange(len(mating_pool))
 		p_b_idx = random.randrange(len(mating_pool))
 		if p_a_idx == p_b_idx:
 			continue
 		parent_a = mating_pool[p_a_idx]
 		parent_b = mating_pool[p_b_idx]
-		child_a, child_b = crossover(parent_a, parent_b)
-		child_a = mutation(child_a, SEARCH_MIN, SEARCH_MAX)
-		child_b = mutation(child_b, SEARCH_MIN, SEARCH_MAX)
+		child_a, child_b = crossover(parent_a, parent_b, cr)
+		child_a = mutation(child_a, s_min, s_max, mr)
+		child_b = mutation(child_b, s_min, s_max, mr)
 		new_population.append(child_a)
 		new_population.append(child_b)
 	return new_population
 
-def crossover(parent_a, parent_b):
-	if random.uniform(0.00, 1.00) >= CROSS_RATE:
-		return copy.deepcopy([parent_a, parent_b])
-	child_a, child_b = [], []
-	pivot = random.randint(1, len(parent_a)-1)
-	for i in range(0, len(parent_a)):
+def crossover(parent_a, parent_b, cr):
+	if random.uniform(0.00, 1.00) >= cr:
+		child_a = Chromosome(parent_a.get_genes(), parent_a.get_fit())
+		child_b = Chromosome(parent_b.get_genes(), parent_b.get_fit())
+		return child_a, child_b
+	genes_a, genes_b = [], []
+	parent_a_genes = parent_a.get_genes()
+	parent_b_genes = parent_b.get_genes()
+	pivot = random.randint(1, len(parent_a_genes)-1)
+	for i in range(0, len(parent_a_genes)):
 		if i < pivot:
-			child_a.append(parent_a[i])
-			child_b.append(parent_b[i])
+			genes_a.append(parent_a_genes[i])
+			genes_b.append(parent_b_genes[i])
 		else:
-			child_a.append(parent_b[i])
-			child_b.append(parent_a[i])
-	return child_a, child_b
-	
-def mutation(child, s_min, s_max):
-	for i in range(len(child)):
-		if random.uniform(0.00, 1.00) <= MUTAT_RATE:
-			diff = random.uniform(s_min*0.5, s_max*0.5)
-			child[i] += diff
-			child[i] = max(child[i], s_min)
-			child[i] = min(child[i], s_max)
+			genes_a.append(parent_b_genes[i])
+			genes_b.append(parent_a_genes[i])
+	return Chromosome(genes_a), Chromosome(genes_b)
+
+def mutation(child, s_min, s_max, mr):
+	genes = [gene for gene in child.get_genes()]
+	for i in range(len(genes)):
+		if random.uniform(0.00, 1.00) <= mr:
+			genes[i] += random.uniform(s_min*0.50, s_max*0.50)
+			genes[i] = max(genes[i], s_min)
+			genes[i] = min(genes[i], s_max)
+	if genes != child.get_genes():
+		child.set_genes(genes)
 	return child
 
 def elite_selection(population, percent):
@@ -71,31 +98,30 @@ def tournament_selection(population, percent):
 	for i in range(ceil(len(population)*percent)):
 		random_idx = random.randint(0, len(population)-1)
 		tournament.append(population.pop(random_idx))
-	tournament = sorted(tournament, key=styb_tang)
+	tournament.sort()
 	return tournament[0]
 
-def styb_tang(point):
+def fitness(genes):
 	summ = 0
-	for d in point:
-		summ += d**4 - (16 * d**2) + (5 * d)
+	for gene in genes:
+		summ += gene**4 - (16 * gene**2) + (5 * gene)
 	return (1 / 2) * summ
 
-def initialize_population(size, dim, min, max):
+def initialize_population(size, dim, s_min, s_max):
 	population = []
 	for _ in range(size):
-		point = []
-		for _ in range(dim):
-			point.append(random.uniform(min, max))
-		population.append(point)
+		genes = [random.uniform(s_min, s_max) for _ in range(dim)]
+		chromosome = Chromosome(genes)
+		population.append(chromosome)
 	return population
 
 if __name__ == '__main__':
 	SEARCH_MIN, SEARCH_MAX = -5.00, 5.00
-	DIMENSIONS = 2
+	DIMENSIONS = 2000
 	POP_SIZE = 200
 	ELITE_PROPORTION = 0.01
 	TOURN_PROPORTION = 0.02
 	EPOCHS = 10
 	CROSS_RATE, MUTAT_RATE = 0.95, 0.05
-	genetic_algorithm(ELITE_PROPORTION, TOURN_PROPORTION, DIMENSIONS, \
-		EPOCHS, styb_tang)
+	genetic_algorithm(ELITE_PROPORTION, TOURN_PROPORTION, DIMENSIONS, EPOCHS, \
+		POP_SIZE, SEARCH_MIN, SEARCH_MAX, CROSS_RATE, MUTAT_RATE)
